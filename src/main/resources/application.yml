@@ -1,0 +1,163 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: srv-gateway
+
+  cloud:
+    gateway:
+      routes:
+        # ===============================
+        # Rota para o serviço condomínio
+        # ===============================
+        - id: srv-condominio-api
+          uri: http://localhost:8081
+          predicates:
+            - Path=/condominio/**, /torre/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: condominio-api-cb
+            - name: Retry
+              args:
+                retries: 3
+                methods: GET,POST,PUT,DELETE
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+
+        # ============================
+        # Rota para o serviço usuário
+        # ============================
+        - id: usuario-api-route
+          uri: http://localhost:8082
+          predicates:
+            - Path=/usuario/**, /auth/**, /permissao/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: usuario-api-cb
+            - name: Retry
+              args:
+                retries: 3
+                methods: GET,POST,PUT,DELETE
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+
+      default-filters:
+        - AddResponseHeader=X-Condominio-Gateway, v1.0
+        - PreserveHostHeader
+
+      httpclient:
+        connect-timeout: 9000
+        response-timeout: 80s
+        pool:
+          max-connections: 200
+          max-idle-time: 60s
+
+      filter:
+        circuit-breaker:
+          enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      condominio-api-cb:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - java.nio.channels.ClosedChannelException
+        ignore-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+
+      usuario-api-cb:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - java.nio.channels.ClosedChannelException
+        ignore-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+
+  timelimiter:
+    instances:
+      condominio-api-cb:
+        timeout-duration: 15s
+        cancel-running-future: true
+      usuario-api-cb:
+        timeout-duration: 15s
+        cancel-running-future: true
+
+  retry:
+    instances:
+      condominio-api-retry:
+        max-attempts: 3
+        wait-duration: 100ms
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+
+      usuario-api-retry:
+        max-attempts: 3
+        wait-duration: 100ms
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway,circuitbreakers,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    circuitbreakers:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    reactor.netty.http.client: DEBUG
+    org.springframework.cloud.gateway.filter: DEBUG
+    org.springframework.cloud.circuitbreaker: DEBUG
+    io.github.resilience4j: DEBUG

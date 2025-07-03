@@ -7,6 +7,22 @@ spring:
 
   cloud:
     gateway:
+      # ========================================================
+      # Bloco CORS adicionado para resolver o erro 403 Forbidden
+      # ========================================================
+      globalcors:
+        cors-configurations:
+          '[/**]': # Aplica a configuração a todas as rotas
+            allowed-origins: "http://localhost:3000" # <-- IMPORTANTE: Altere para a URL do seu front-end
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: true
+
       routes:
         # ===============================
         # Rota para o serviço condomínio
@@ -61,6 +77,7 @@ spring:
         circuit-breaker:
           enabled: true
 
+# ... o resto do seu arquivo resilience4j, management, e logging continua igual ...
 resilience4j:
   circuitbreaker:
     instances:

@@ -30,7 +30,7 @@ spring:
         - id: srv-condominio-api
           uri: http://localhost:8081
           predicates:
-            - Path=/condominio/**, /torre/**
+            - Path=/condominio/**, /torre/**, /query/**, /unidade/**
           filters:
             - name: CircuitBreaker
               args:
@@ -49,7 +49,7 @@ spring:
         - id: usuario-api-route
           uri: http://localhost:8082
           predicates:
-            - Path=/usuario/**, /auth/**, /permissao/**
+            - Path=/usuario/**, /auth/**, /permissao/**, /gerenciamento/**
           filters:
             - name: CircuitBreaker
               args:

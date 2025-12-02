@@ -1,14 +1,23 @@
-# Usa o Amazon Corretto 21 como base (Java 21)
-FROM amazoncorretto:21
-
-# Define o diretório de trabalho dentro do container
+# Estágio de Build
+FROM maven:3.9-amazoncorretto-21 AS build
 WORKDIR /app
 
-# Copia o JAR do serviço condominio para dentro do container
-COPY target/srv-gateway-0.0.1-SNAPSHOT.jar app.jar
+# 1. Copia SÓ o pom.xml primeiro
+COPY pom.xml .
 
-# Expõe a porta do serviço condominio
-EXPOSE 8080
+# 2. Baixa as dependências (Isso fica em cache se o pom.xml não mudar)
+RUN mvn dependency:go-offline
 
-# Comando para iniciar a aplicação
-CMD ["java", "-jar", "app.jar"]
+# 3. Só agora copia o código fonte
+COPY src ./src
+
+# 4. Compila (usando as dependências já baixadas)
+RUN mvn clean package -DskipTests
+
+# Estágio Final (Run) - Continua igual
+FROM amazoncorretto:21-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080 
+# (Lembre de ajustar o EXPOSE para a porta correta de cada projeto: 8080, 8081 ou 8082)
+ENTRYPOINT ["java", "-jar", "app.jar"]

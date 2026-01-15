@@ -28,9 +28,10 @@ spring:
         # Rota para o serviço condomínio
         # ===============================
         - id: srv-condominio-api
+          #uri: http://srv-condominio-api:8081
           uri: http://localhost:8081
           predicates:
-            - Path=/condominio/**, /torre/**, /query/**, /unidade/**
+            - Path=/condominio/**, /torre/**, /query/**, /unidade/**, /responsavel/**
           filters:
             - name: CircuitBreaker
               args:
@@ -47,9 +48,10 @@ spring:
         # Rota para o serviço usuário
         # ============================
         - id: usuario-api-route
+          #uri: http://srv-usuario-api:8082
           uri: http://localhost:8082
           predicates:
-            - Path=/usuario/**, /auth/**, /permissao/**, /gerenciamento/**
+            - Path=/usuario/**, /auth/**, /permissao/**, /gerenciamento/**, /dependente/**
           filters:
             - name: CircuitBreaker
               args:
